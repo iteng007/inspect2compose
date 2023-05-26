@@ -3,6 +3,7 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use std::io::Write;
 
 fn main() {
     let matches = command!()
@@ -22,18 +23,18 @@ fn main() {
         )
         .get_matches();
 
-    // 获取并使用参数
+    // Get and use arguments
     let input = matches.get_one::<PathBuf>("input").unwrap();
     let output = matches.get_one::<PathBuf>("output").unwrap();
 
     println!("Input JSON file: {}", input.display());
     println!("Output YAML file: {}", output.display());
 
-    // 打开 JSON 文件
+    // Open JSON file
     let file = File::open(&input).expect("Could not open JSON file");
     let reader = BufReader::new(file);
 
-    // 解析 JSON 文件
+    // Parse JSON file
     let json_data: Value = serde_json::from_reader(reader).expect("Could not parse JSON file");
     // println!("Parsed JSON data: {:?}", json_data);
     let json_data = json_data.as_array().unwrap().first().unwrap();
@@ -59,38 +60,42 @@ fn main() {
         .map(|v| v.as_str().unwrap().to_string())
         .collect();
 
-        let mut compose_str = String::new();
+    let mut compose_str = String::new();
 
-        compose_str += &format!("version: \"3\"\n\nservices:\n");
-        compose_str += &format!("  {}:\n", container_name);
-        compose_str += &format!("    image: {}\n", image);
-        compose_str += &format!("    restart: {}\n", restart);
+    compose_str += &format!("version: \"3\"\n\nservices:\n");
+    compose_str += &format!("  {}:\n", container_name);
+    compose_str += &format!("    image: {}\n", image);
+    compose_str += &format!("    restart: {}\n", restart);
         
-        compose_str += "    networks:\n";
-        for network in &networks {
-            compose_str += &format!("      - {}\n", network);
-        }
+    compose_str += "    networks:\n";
+    for network in &networks {
+        compose_str += &format!("      - {}\n", network);
+    }
         
-        compose_str += "    ports:\n";
-        for port in &ports {
-            compose_str += &format!("      - \"{}\"\n", port);
-        }
+    compose_str += "    ports:\n";
+    for port in &ports {
+        compose_str += &format!("      - \"{}\"\n", port);
+    }
         
-        compose_str += "    volumes:\n";
-        for volume in &volumes {
-            compose_str += &format!("      - \"{}\"\n", volume);
-        }
+    compose_str += "    volumes:\n";
+    for volume in &volumes {
+        compose_str += &format!("      - \"{}\"\n", volume);
+    }
         
-        compose_str += "    environment:\n";
-        for env in &environment {
-            compose_str += &format!("      - {}\n", env);
-        }
+    compose_str += "    environment:\n";
+    for env in &environment {
+        compose_str += &format!("      - {}\n", env);
+    }
         
-        compose_str += "\nnetworks:\n";
-        for network in &networks {
-            compose_str += &format!("  {}:\n", network);
-            compose_str += "    external: true\n";
-        }
+    compose_str += "\nnetworks:\n";
+    for network in &networks {
+        compose_str += &format!("  {}:\n", network);
+        compose_str += "    external: true\n";
+    }
         
-        println!("{}", compose_str);
+    println!("{}", compose_str);
+
+    // Write to output file
+    let mut output_file = File::create(&output).expect("Could not create output file");
+    output_file.write_all(compose_str.as_bytes()).expect("Could not write to output file");
 }
